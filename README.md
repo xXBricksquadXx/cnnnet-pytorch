@@ -104,7 +104,7 @@ data/
 [![Watch the video](https://img.shields.io/badge/▶_Watch-Baseline_Video-blue?style=for-the-badge)](https://github.com/user-attachments/assets/51a44a67-081d-430c-adef-fff21dd63f14)
 
 <div align="center">
-  <a href="https://github.com/user-attachments/assets/d7d8404d-97d1-4ad7-9d43-0053f7c31fff">
+  <a href="github.com/user-attachments/assets/51a44a67-081d-430c-adef-fff21dd63f14f">
   </a>
 </div>
 
