@@ -225,25 +225,24 @@ Suggested sequence (keep everything else fixed when testing one change):
 
 ---
 
-## Findings (fill in after your first run)
+## First Run Findings:
 
-- Dataset + split:
+- **Dataset + split**:
 
-  - train/cat: \_\_
-  - train/fish: \_\_
-  - val/cat: \_\_
-  - val/fish: \_\_
+  - train/cat: 2
+  - train/fish: 2
+  - val/cat: 2
+  - val/fish: 2
 
-- Baseline behavior:
+**Baseline run**:
 
-  - training accuracy: \_\_
-  - validation accuracy: \_\_
+- `adam`, `lr=1e-3`, `image_size=224`, `demo_aug=1`, `epochs=25`
 
-- What helped most: \_\_
+**Observed behavior**:
 
-- What didn’t move the ceiling: \_\_
-
-- Main takeaway: \_\_
+- training accuracy reaches 1.0 quickly (memorization)
+- validation accuracy is mostly 0.50, with occasional 0.75 (3/4 correct)
+- single-image predictions on val collapsed to fish for both tested samples
 
 ---
 
