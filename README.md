@@ -1,3 +1,5 @@
+## ![Header](assets/header-banner.png)
+
 # CNNNet (PyTorch) — conv training, prediction, saving/loading
 
 A compact, practical reference for this chapter’s workflow:
