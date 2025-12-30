@@ -244,7 +244,7 @@ Suggested sequence (keep everything else fixed when testing one change):
 Command:
 
 ```bash
-python train.py --data-dir data --device cpu --epochs 25 --batch-size 4 --image-size 224 --optimizer adam --lr 0.001 --demo-aug 1
+python train.py --data-dir data --device cpu --epochs 25 --batch-size 16 --image-size 224 --optimizer adam --lr 0.001 --demo-aug 1
 ```
 
 Observed:
@@ -280,6 +280,22 @@ Observed:
 - final epoch: train acc ~1.0, val acc ~0.500
 - best val acc seen: ~0.583 (7/12 correct) at epoch 20
 - predictions on val folders still heavily favored `fish` (≈0.9998–0.9999)
+
+### Run 3 — Experiment B (batch size 4)
+
+Command:
+
+```bash
+python train.py --data-dir data --device cpu --epochs 25 --batch-size 4 --image-size 224 --optimizer adam --lr 0.0003 --weight-decay 0.0001 --demo-aug 1 --head-dim 512
+```
+
+Observed:
+
+- early epochs hovered near chance (train/val ~0.50)
+- train accuracy reached ~1.0 by ~epoch 14 (memorization)
+- validation loss was volatile and spiked when the model became confidently wrong
+- best val acc seen: ~0.667 (8/12 correct) at epochs 17 / 22 / 23
+- predictions on val folders still favored `fish` strongly (cat val example predicted fish at ~0.9988)
 
 ### Takeaway (so far)
 
