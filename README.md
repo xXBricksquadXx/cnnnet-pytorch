@@ -95,6 +95,25 @@ data/
     fish/*.png
 ```
 
+---
+
+## Baseline demo (screen recording)
+
+▶ **Baseline video:** [assets/cnnet-ptorch.mp4](assets/cnnet-ptorch.mp4)
+
+[![Watch the video](https://img.shields.io/badge/▶_Watch-Baseline_Video-blue?style=for-the-badge)](https://github.com/user-attachments/assets/51a44a67-081d-430c-adef-fff21dd63f14)
+
+<div align="center">
+  <a href="https://github.com/user-attachments/assets/d7d8404d-97d1-4ad7-9d43-0053f7c31fff">
+  </a>
+</div>
+
+Notes:
+
+- GitHub may not autoplay MP4 inside the README; the link should open/download the file.
+
+---
+
 Convention:
 
 - `data/train/*` = **clean** examples
