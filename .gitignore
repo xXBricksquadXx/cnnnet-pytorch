@@ -1,0 +1,22 @@
+
+---
+
+## File>.gitignore
+```gitignore
+# venv
+.venv/
+venv/
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# outputs
+runs/
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
