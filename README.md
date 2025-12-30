@@ -225,24 +225,76 @@ Suggested sequence (keep everything else fixed when testing one change):
 
 ---
 
-## First Run Findings:
+## Findings (runs so far)
 
-- **Dataset + split**:
+### Environment
 
-  - train/cat: 2
-  - train/fish: 2
-  - val/cat: 2
-  - val/fish: 2
+- PyTorch: `2.9.1+cpu`
+- CUDA available: `False` (CPU training)
 
-**Baseline run**:
+### Dataset + split (current)
 
-- `adam`, `lr=1e-3`, `image_size=224`, `demo_aug=1`, `epochs=25`
+- train/cat: 6
+- train/fish: 6
+- val/cat: 6
+- val/fish: 6
 
-**Observed behavior**:
+### Run 0 — baseline (very tiny set)
 
-- training accuracy reaches 1.0 quickly (memorization)
-- validation accuracy is mostly 0.50, with occasional 0.75 (3/4 correct)
-- single-image predictions on val collapsed to fish for both tested samples
+Command:
+
+```bash
+python train.py --data-dir data --device cpu --epochs 25 --batch-size 4 --image-size 224 --optimizer adam --lr 0.001 --demo-aug 1
+```
+
+Observed:
+
+- training accuracy reached ~1.0 quickly (memorization)
+- validation accuracy bounced between ~0.50 and ~0.75 (too few samples to be stable)
+- prediction on val examples collapsed to a single class (`fish`)
+
+### Run 1 — Experiment A (shrink classifier head)
+
+Command:
+
+```bash
+python train.py --data-dir data --device cpu --epochs 25 --batch-size 16 --image-size 224 --optimizer adam --lr 0.001 --demo-aug 1 --head-dim 512
+```
+
+Observed:
+
+- final epoch: train acc ~0.833, val acc ~0.500
+- best val acc seen: ~0.75 (9/12 correct) at epoch 18
+- predictions on val folders still collapsed to `fish` with probability ~1.0
+
+### Run 2 — Experiment B (lower LR + weight decay)
+
+Command:
+
+```bash
+python train.py --data-dir data --device cpu --epochs 25 --batch-size 16 --image-size 224 --optimizer adam --lr 0.0003 --weight-decay 0.0001 --demo-aug 1 --head-dim 512
+```
+
+Observed:
+
+- final epoch: train acc ~1.0, val acc ~0.500
+- best val acc seen: ~0.583 (7/12 correct) at epoch 20
+- predictions on val folders still heavily favored `fish` (≈0.9998–0.9999)
+
+### Takeaway (so far)
+
+- The training workflow and checkpointing are functioning.
+- With ~6 images/class and a clean→challenge shift, metrics are still noisy and the model can collapse to one class.
+- Next lever is **more data** (and/or a smaller/simple CNN head), while keeping the workflow constant.
+
+---
+
+## Further reading (chapter concepts)
+
+- `Krizhevsky, Sutskever, Hinton (2012)`: _ImageNet Classification with Deep Convolutional Neural Networks_ (AlexNet)
+- `Srivastava et al. (2014)`: _Dropout: A Simple Way to Prevent Neural Networks from Overfitting_
+- `LeCun et al. (1998)`: _Gradient-Based Learning Applied to Document Recognition_ (early CNNs / LeNet)
+- `Goodfellow, Bengio, Courville (2016)`: _Deep Learning_ (textbook reference on convs/pooling/regularization)
 
 ---
 
