@@ -236,10 +236,20 @@ Suggested sequence (keep everything else fixed when testing one change):
 
 ### Dataset + split (current)
 
-- train/cat: 6
-- train/fish: 6
-- val/cat: 6
-- val/fish: 6
+- train/cat: 12
+- train/fish: 12
+- val/cat: 8
+- val/fish: 8
+
+Note: validation has 16 total images, so:
+
+- `val acc 0.562` = 9/16 correct
+- `val acc 0.500` = 8/16 correct
+- `val acc 0.438` = 7/16 correct
+- `val acc 0.375` = 6/16 correct
+- `val acc 0.312` = 5/16 correct
+- `val acc 0.250` = 4/16 correct
+- `val acc 0.188` = 3/16 correct
 
 ### Run 0 — baseline (very tiny set)
 
@@ -296,7 +306,7 @@ Observed:
 - early epochs hovered near chance (train/val ~0.50)
 - train accuracy reached ~1.0 by ~epoch 14 (memorization)
 - validation loss was volatile and spiked when the model became confidently wrong
-- best val acc seen: ~0.667 (8/12 correct) at epochs 17 / 22 / 23
+- best val acc seen: ~0.667 (8/12 correct) at epochs 17 / 22 / 23 (earlier, smaller val)
 - predictions on val folders still favored `fish` strongly (cat val example predicted fish at ~0.9988)
 
 Sanity check (train distribution):
@@ -304,6 +314,74 @@ Sanity check (train distribution):
 - `predict.py --image data/train/cat` → predicted **cat** (~0.8837)
 - `predict.py --image data/train/fish` → predicted **fish** (~1.0000)
 - This suggests the model is learning the **clean/train** distribution, and the collapse happens mainly on the **challenge/val** distribution (domain shift).
+
+### Run 4 — New baseline on larger dataset (demo_aug ON)
+
+Command:
+
+```bash
+python train.py --data-dir data --device cpu --epochs 25 --batch-size 8 --image-size 224 --optimizer adam --lr 0.0003 --weight-decay 0.0001 --demo-aug 1 --head-dim 512
+```
+
+Observed:
+
+- train accuracy climbed to ~1.0 (memorization), but val accuracy became more informative with 16 samples
+- val accuracy peaked at **~0.562** (9/16 correct) around epochs 21–22
+- single-example predictions (same checkpoint):
+
+  - `data/val/cat` example predicted **cat** (~0.9999)
+  - `data/val/fish` example predicted **fish** (~1.0000)
+
+### Run 5 — Augmentation ablation (demo_aug OFF)
+
+Command:
+
+```bash
+python train.py --data-dir data --device cpu --epochs 25 --batch-size 8 --image-size 224 --optimizer adam --lr 0.0003 --weight-decay 0.0001 --demo-aug 0 --head-dim 512
+```
+
+Observed:
+
+- train accuracy hit **1.0** quickly
+- validation loss exploded over time (became extremely overconfident on the challenge split)
+- predictions collapsed back toward a single class on challenge:
+
+  - `data/val/cat` example predicted **fish** (1.0000)
+
+### Run 6 — Dropout sweep (demo_aug ON, dropout=0.6)
+
+Command:
+
+```bash
+python train.py --data-dir data --device cpu --epochs 25 --batch-size 8 --image-size 224 --optimizer adam --lr 0.0003 --weight-decay 0.0001 --demo-aug 1 --head-dim 512 --dropout 0.6
+```
+
+Observed:
+
+- val loss stayed much more controlled than the no-augmentation run
+- best val accuracy reached **~0.562** (9/16 correct) at epochs 18 and 22
+- best val loss occurred around epoch 18 (~0.696), suggesting an **early-stop** window
+
+### Run 7 — Weight decay sweep (demo_aug ON, weight_decay=0.001)
+
+Command:
+
+```bash
+python train.py --data-dir data --device cpu --epochs 25 --batch-size 8 --image-size 224 --optimizer adam --lr 0.0003 --weight-decay 0.001 --demo-aug 1 --head-dim 512
+```
+
+Observed:
+
+- val accuracy intermittently reached **~0.562** (9/16 correct) but remained unstable
+- val loss later spiked again, indicating overconfidence can still happen
+
+### Checkpoint sanity
+
+`class_to_idx` from the saved checkpoint:
+
+```py
+{'cat': 0, 'fish': 1}
+```
 
 ### Takeaway (so far)
 
