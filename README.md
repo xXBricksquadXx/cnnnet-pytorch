@@ -244,7 +244,7 @@ Suggested sequence (keep everything else fixed when testing one change):
 Command:
 
 ```bash
-python train.py --data-dir data --device cpu --epochs 25 --batch-size 16 --image-size 224 --optimizer adam --lr 0.001 --demo-aug 1
+python train.py --data-dir data --device cpu --epochs 25 --batch-size 4 --image-size 224 --optimizer adam --lr 0.001 --demo-aug 1
 ```
 
 Observed:
@@ -296,6 +296,12 @@ Observed:
 - validation loss was volatile and spiked when the model became confidently wrong
 - best val acc seen: ~0.667 (8/12 correct) at epochs 17 / 22 / 23
 - predictions on val folders still favored `fish` strongly (cat val example predicted fish at ~0.9988)
+
+Sanity check (train distribution):
+
+- `predict.py --image data/train/cat` → predicted **cat** (~0.8837)
+- `predict.py --image data/train/fish` → predicted **fish** (~1.0000)
+- This suggests the model is learning the **clean/train** distribution, and the collapse happens mainly on the **challenge/val** distribution (domain shift).
 
 ### Takeaway (so far)
 
