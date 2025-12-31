@@ -29,10 +29,10 @@ This repo is intentionally small so you can iterate on:
 
 ▶ **Baseline video:** [assets/cnnet-ptorch.mp4](assets/final-test.mp4)
 
-[![Watch the video](https://img.shields.io/badge/▶_Watch-Baseline_Video-blue?style=for-the-badge)](https://github.com/user-attachments/assets/4528996f-6f04-4708-9437-d2e50d9a9e5e)
+[![Watch the video](https://img.shields.io/badge/▶_Watch-Baseline_Video-blue?style=for-the-badge)](https://github.com/user-attachments/assets/326fe341-f867-4bdf-8f42-96ebb2cd37d1)
 
 <div align="center">
-  <a href="https://github.com/user-attachments/assets/4528996f-6f04-4708-9437-d2e50d9a9e5e">
+  <a href="https://github.com/user-attachments/assets/326fe341-f867-4bdf-8f42-96ebb2cd37d1">
   </a>
 </div>
 
