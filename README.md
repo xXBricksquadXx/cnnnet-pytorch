@@ -11,6 +11,7 @@ A compact, practical reference for this chapter’s workflow:
 
   - **state_dict** (weights-only)
   - **checkpoint dict** (resume + inference)
+  - **best-checkpoint** selection (recommended)
   - **full-model demo** (brittle)
 
 This repo is intentionally small so you can iterate on:
@@ -26,12 +27,12 @@ This repo is intentionally small so you can iterate on:
 
 ## Baseline demo (screen recording)
 
-▶ **Baseline video:** [assets/cnnet-ptorch.mp4](assets/cnnet-ptorch.mp4)
+▶ **Baseline video:** [assets/cnnet-ptorch.mp4](assets/final-test.mp4)
 
-[![Watch the video](https://img.shields.io/badge/▶_Watch-Baseline_Video-blue?style=for-the-badge)](https://github.com/user-attachments/assets/51a44a67-081d-430c-adef-fff21dd63f14)
+[![Watch the video](https://img.shields.io/badge/▶_Watch-Baseline_Video-blue?style=for-the-badge)](https://github.com/user-attachments/assets/4528996f-6f04-4708-9437-d2e50d9a9e5e)
 
 <div align="center">
-  <a href="github.com/user-attachments/assets/51a44a67-081d-430c-adef-fff21dd63f14f">
+  <a href="https://github.com/user-attachments/assets/4528996f-6f04-4708-9437-d2e50d9a9e5e">
   </a>
 </div>
 
@@ -44,27 +45,30 @@ Notes:
 ## Repo layout
 
 ```
+
 cnnnet-pytorch/
-  assets/                  # visuals only (optional)
-  data/                    # training-only images
-    train/
-      cat/
-      fish/
-    val/
-      cat/
-      fish/
-  runs/                    # outputs/checkpoints (gitignored)
-  convnet/                 # package
-    __init__.py
-    data.py
-    engine.py
-    io.py
-    models.py
-    utils.py
-  train.py                 # CLI entrypoint
-  predict.py               # CLI entrypoint
-  requirements.txt
-  .gitignore
+assets/                  # visuals only (optional)
+data/                    # training-only images
+train/
+cat/
+fish/
+val/
+cat/
+fish/
+logs/                    # transcripts (optional)
+runs/                    # outputs/checkpoints (gitignored)
+convnet/                 # package
+**init**.py
+data.py
+engine.py
+io.py
+models.py
+utils.py
+train.py                 # CLI entrypoint
+predict.py               # CLI entrypoint
+requirements.txt
+.gitignore
+
 ```
 
 Notes:
@@ -91,7 +95,7 @@ pip install -r requirements.txt
 Sanity:
 
 ```bash
-python -c "import torch, torchvision; print(torch.__version__); print('cuda:', torch.cuda.is_available())"
+python -c "import torch, torchvision; print('torch:', torch.__version__); print('torchvision:', torchvision.__version__); print('cuda:', torch.cuda.is_available())"
 ```
 
 ---
@@ -115,11 +119,20 @@ data/
 Convention:
 
 - `data/train/*` = **clean** examples
-- `data/val/*` = **challenge** examples
+- `data/val/*` = **challenge** examples (harder / different distribution)
+
+### Current dataset size (full upgrade)
+
+- train/cat: **20**
+- train/fish: **20**
+- val/cat: **16**
+- val/fish: **16**
+
+Total validation images: **32**
 
 ---
 
-## 3) Baseline run (CNNNet)
+## 3) Final run (CNNNet) — recommended config
 
 This CNNNet is AlexNet-ish (stride-4 early), so use a larger image size (recommended: **224**).
 
@@ -128,23 +141,21 @@ python train.py \
   --data-dir data \
   --device cpu \
   --epochs 25 \
-  --batch-size 16 \
+  --batch-size 8 \
   --image-size 224 \
   --optimizer adam \
-  --lr 0.001 \
-  --demo-aug 1
+  --lr 0.0003 \
+  --weight-decay 0.0001 \
+  --demo-aug 1 \
+  --head-dim 512 \
+  --dropout 0.6
 ```
 
-Expected behavior (small data + domain shift):
-
-- training accuracy can hit ~1.0 quickly
-- validation accuracy may hover around chance if there’s a clean→challenge shift
-- augmentation + dropout can reduce collapse/overconfidence
-
-Outputs:
+### Outputs
 
 - `runs/convnet_state_dict.pt` (recommended weights-only)
-- `runs/convnet_checkpoint.pt` (recommended for resume + inference)
+- `runs/convnet_checkpoint.pt` (last epoch checkpoint)
+- `runs/convnet_best_checkpoint.pt` (**best** checkpoint on validation; recommended for inference)
 - `runs/convnet_full_model.pt` (brittle demo; breaks if code structure changes)
 
 ---
@@ -156,7 +167,7 @@ Single file:
 ```bash
 python predict.py \
   --image "data/val/cat/cat-challenge-001.png" \
-  --checkpoint "runs/convnet_checkpoint.pt" \
+  --checkpoint "runs/convnet_best_checkpoint.pt" \
   --device cpu
 ```
 
@@ -165,13 +176,63 @@ Directory input (picks the first image in the folder):
 ```bash
 python predict.py \
   --image "data/val/cat" \
-  --checkpoint "runs/convnet_checkpoint.pt" \
+  --checkpoint "runs/convnet_best_checkpoint.pt" \
   --device cpu
 ```
 
 ---
 
-## 5) Saving & loading (what to remember)
+## 5) Why BEST checkpoint matters
+
+This run clearly shows **late-epoch drift / overfit** on the challenge split.
+
+On the _same_ validation image (`data/val/cat/cat-challenge-001.png`):
+
+- **Last epoch checkpoint** (`convnet_checkpoint.pt`, epoch 25) predicted **fish (0.7770)**
+- **Best checkpoint** (`convnet_best_checkpoint.pt`, epoch 15) predicted **cat (0.5619)**
+
+So for demos + inference, prefer:
+
+- `runs/convnet_best_checkpoint.pt`
+
+---
+
+## 6) Final results (full dataset)
+
+Environment:
+
+- PyTorch: `2.9.1+cpu`
+- torchvision: `0.24.1+cpu`
+- CUDA available: `False` (CPU training)
+
+Final training log highlights:
+
+- **Peak validation accuracy:** **0.875** at **epoch 15** (28/32 correct)
+- Next best: **0.844** at epoch 16 and epoch 20 (27/32 correct)
+
+After epoch ~15–20, validation loss becomes volatile again (classic small-data behavior), even while train accuracy stays high.
+
+### Random-sample sanity (best checkpoint)
+
+A quick random check shows the model is usually confident on clean/train images, but still confuses a few hard challenge images.
+
+Examples from the final run:
+
+- `val/cat` sample mistakes included:
+
+  - `cat-challenge-005.png` predicted fish (0.5104)
+  - `cat-challenge-003.png` predicted fish (0.7814)
+
+- `val/fish` sample mistake included:
+
+  - `fish-challenge-004.png` predicted cat (0.8428)
+
+Takeaway: the pipeline is correct; the remaining limitation is **domain shift + small data**;
+`demo_aug=1` + `dropout=0.6` + **best checkpoint** made the run stable and usable.
+
+---
+
+## 7) Saving & loading (what to remember)
 
 ### A) Full model object (works, but brittle)
 
@@ -203,7 +264,7 @@ This is what `predict.py` uses.
 
 ---
 
-## 6) Convolutions / kernels / pooling / dropout (mapped to code)
+## 8) Convolutions / kernels / pooling / dropout (mapped to code)
 
 - **Conv2d**: `nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)`
 
@@ -232,187 +293,7 @@ This converts RGB → grayscale **on load** (no special files required) and swit
 
 ---
 
-## 7) Controlled experiments (one variable at a time)
-
-Suggested sequence (keep everything else fixed when testing one change):
-
-1. Augmentation: `--demo-aug 0/1`
-2. Dropout: `--dropout 0.2` → `0.5` → `0.6`
-3. Head size: `--head-dim 512` vs `1024` vs `4096`
-4. Optimizer: Adam vs SGD (`--optimizer sgd --lr 0.01`)
-5. Image size: 128 vs 224
-
----
-
-## Findings (runs so far)
-
-### Environment
-
-- PyTorch: `2.9.1+cpu`
-- CUDA available: `False` (CPU training)
-
-### Dataset + split (current)
-
-- train/cat: 12
-- train/fish: 12
-- val/cat: 8
-- val/fish: 8
-
-Note: validation has 16 total images, so:
-
-- `val acc 0.562` = 9/16 correct
-- `val acc 0.500` = 8/16 correct
-- `val acc 0.438` = 7/16 correct
-- `val acc 0.375` = 6/16 correct
-- `val acc 0.312` = 5/16 correct
-- `val acc 0.250` = 4/16 correct
-- `val acc 0.188` = 3/16 correct
-
-### Run 0 — baseline (very tiny set)
-
-```bash
-python train.py --data-dir data --device cpu --epochs 25 --batch-size 4 --image-size 224 --optimizer adam --lr 0.001 --demo-aug 1
-```
-
-Observed:
-
-- training accuracy reached ~1.0 quickly (memorization)
-- validation accuracy bounced between ~0.50 and ~0.75 (too few samples to be stable)
-- prediction on val examples collapsed to a single class (`fish`)
-
-### Run 1 — Experiment A (shrink classifier head)
-
-```bash
-python train.py --data-dir data --device cpu --epochs 25 --batch-size 16 --image-size 224 --optimizer adam --lr 0.001 --demo-aug 1 --head-dim 512
-```
-
-Observed:
-
-- final epoch: train acc ~0.833, val acc ~0.500
-- best val acc seen: ~0.75 (9/12 correct) at epoch 18 (earlier, smaller val)
-- predictions on val folders still collapsed to `fish` with probability ~1.0
-
-### Run 2 — Experiment B (lower LR + weight decay)
-
-```bash
-python train.py --data-dir data --device cpu --epochs 25 --batch-size 16 --image-size 224 --optimizer adam --lr 0.0003 --weight-decay 0.0001 --demo-aug 1 --head-dim 512
-```
-
-Observed:
-
-- final epoch: train acc ~1.0, val acc ~0.500
-- best val acc seen: ~0.583 (7/12 correct) at epoch 20 (earlier, smaller val)
-- predictions on val folders still heavily favored `fish` (≈0.9998–0.9999)
-
-### Run 3 — Experiment B (batch size 4)
-
-```bash
-python train.py --data-dir data --device cpu --epochs 25 --batch-size 4 --image-size 224 --optimizer adam --lr 0.0003 --weight-decay 0.0001 --demo-aug 1 --head-dim 512
-```
-
-Observed:
-
-- early epochs hovered near chance (train/val ~0.50)
-- train accuracy reached ~1.0 by ~epoch 14 (memorization)
-- validation loss was volatile and spiked when the model became confidently wrong
-- best val acc seen: ~0.667 (8/12 correct) at epochs 17 / 22 / 23 (earlier, smaller val)
-- predictions on val folders still favored `fish` strongly (cat val example predicted fish at ~0.9988)
-
-Sanity check (train distribution):
-
-- `predict.py --image data/train/cat` → predicted **cat** (~0.8837)
-- `predict.py --image data/train/fish` → predicted **fish** (~1.0000)
-
-### Run 4 — New baseline on larger dataset (demo_aug ON)
-
-```bash
-python train.py --data-dir data --device cpu --epochs 25 --batch-size 8 --image-size 224 --optimizer adam --lr 0.0003 --weight-decay 0.0001 --demo-aug 1 --head-dim 512
-```
-
-Observed:
-
-- val accuracy peaked at **~0.562** (9/16 correct) around epochs 21–22
-- single-example predictions (same checkpoint) correctly classified one cat and one fish sample
-
-### Run 5 — Augmentation ablation (demo_aug OFF)
-
-```bash
-python train.py --data-dir data --device cpu --epochs 25 --batch-size 8 --image-size 224 --optimizer adam --lr 0.0003 --weight-decay 0.0001 --demo-aug 0 --head-dim 512
-```
-
-Observed:
-
-- train accuracy hit **1.0** quickly
-- validation loss exploded over time (became extremely overconfident on the challenge split)
-- predictions collapsed toward a single class on challenge
-
-### Run 6 — Dropout sweep (demo_aug ON, dropout=0.6)
-
-```bash
-python train.py --data-dir data --device cpu --epochs 25 --batch-size 8 --image-size 224 --optimizer adam --lr 0.0003 --weight-decay 0.0001 --demo-aug 1 --head-dim 512 --dropout 0.6
-```
-
-Observed:
-
-- val loss stayed much more controlled than the no-augmentation run
-- best val accuracy reached **~0.562** (9/16 correct) at epochs 18 and 22
-- best val loss occurred around epoch 18 (~0.696), suggesting an **early-stop** window
-
-### Run 7 — Weight decay sweep (demo_aug ON, weight_decay=0.001)
-
-```bash
-python train.py --data-dir data --device cpu --epochs 25 --batch-size 8 --image-size 224 --optimizer adam --lr 0.0003 --weight-decay 0.001 --demo-aug 1 --head-dim 512
-```
-
-Observed:
-
-- val accuracy intermittently reached **~0.562** (9/16 correct) but remained unstable
-- val loss later spiked again, indicating overconfidence can still happen
-
-### Run 8 — README demo run (dropout=0.6, epochs=18)
-
-```bash
-python train.py --data-dir data --device cpu --epochs 18 --batch-size 8 --image-size 224 --optimizer adam --lr 0.0003 --weight-decay 0.0001 --demo-aug 1 --head-dim 512 --dropout 0.6
-```
-
-Observed:
-
-- epoch 18/18: **val loss 0.6961**, **val acc 0.562** (9/16 correct)
-- predictions from the saved checkpoint (first image in each folder):
-
-  - `data/val/cat` → **cat** (0.5513)
-  - `data/val/fish` → **fish** (0.8891)
-  - `data/train/cat` → **cat** (0.9842)
-  - `data/train/fish` → **fish** (0.9483)
-
-### Checkpoint sanity
-
-`class_to_idx` from the saved checkpoint:
-
-```py
-{'cat': 0, 'fish': 1}
-```
-
-### Takeaway (so far)
-
-- The training workflow and checkpointing are functioning.
-- The clean→challenge split is the main bottleneck.
-- Keeping `demo_aug=1` helps prevent collapse; adding **dropout (0.6)** stabilizes validation loss.
-- With 12 clean/train per class and 8 challenge/val per class, best validation accuracy is still modest (~9/16).
-- Next lever is **more challenge data** (and/or a smaller CNN), while keeping the training workflow constant.
-
----
-
-## Further reading (chapter concepts)
-
-- `Krizhevsky, Sutskever, Hinton (2012)`: _ImageNet Classification with Deep Convolutional Neural Networks_ (AlexNet)
-- `Srivastava et al. (2014)`: _Dropout: A Simple Way to Prevent Neural Networks from Overfitting_
-- `LeCun et al. (1998)`: _Gradient-Based Learning Applied to Document Recognition_ (early CNNs / LeNet)
-- `Goodfellow, Bengio, Courville (2016)`: _Deep Learning_ (textbook reference on convs/pooling/regularization)
-
----
-
-## Troubleshooting
+## 9) Troubleshooting
 
 VS Code shows missing imports but terminal runs:
 
@@ -423,3 +304,23 @@ VS Code shows missing imports but terminal runs:
 If you get a shape error:
 
 - this architecture expects larger images; try `--image-size 224` (or higher)
+
+If you see:
+
+- `pin_memory is set as true but no accelerator is found`
+
+That’s expected on CPU-only PyTorch; it’s safe to ignore.
+
+---
+
+## Close-out analysis
+
+- **full dataset upgrade** (20/20 train per class; 16/16 val per class) materially improved stability.
+- The model hits its best generalization around **epoch 15** (best checkpoint saved at epoch 15). After that, the model keeps fitting the train set while **val behavior becomes noisy**.
+- The “same image flips label” comparison (last vs best checkpoint) is the cleanest proof that:
+  - the training loop works
+  - the dataset is the bottleneck (domain shift)
+  - the correct practice is **best-checkpoint + early stop**.
+- Random predictions show only a handful of confusing “hard” images; that’s expected with small data and mixed-style images.
+
+---
